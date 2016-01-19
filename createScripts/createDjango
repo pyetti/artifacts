@@ -1,0 +1,244 @@
+#!/bin/bash
+
+install () {
+	echo -n "$1"
+	read -n 3
+	if [[ $install == 'y' ]] || [[ $install == 'yes' ]]; then
+		return 0
+	else
+		return 1
+	fi
+}
+
+exitProgram () {
+	echo 'Unable to install. Missing "'$1'".'
+	exit 1
+}
+
+isHomebrewInstalled () {
+	echo 'checking for Homebrew'
+	brew=$(which brew)
+	if [ -n "$brew" ]; then
+		echo 'Homebrew installed'
+		return 0
+	else
+		echo 'Homebrew not found'
+		return 1
+	fi
+}
+
+installBrew () {
+	installMessage="Install brew? "
+	if install "$installMessage" ; then
+		echo 'installing brew'
+		# $(ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)")
+	else
+		exitProgram 'Homebrew'
+	fi
+}
+
+isPipInstalled () {
+	echo 'checking for pip'
+	isPipInstalled=$(which pip)
+	if [ -n "$isPipInstalled" ]; then
+		echo 'pip installed'
+		return 0
+	else
+		echo 'pip not found'
+		return 1
+	fi
+}
+
+installPip () {
+	installMessage="Install pip using Homebrew? "
+	if install "$installMessage" ; then
+		echo 'Installing pip via brew'
+	else
+		exitProgram 'pip'
+	fi
+}
+
+isVirtualenvInstalled () {
+	echo 'checking for virtualenv'
+	virtualenv=$(which virtualenv)
+	if [ -n "$virtualenv" ]; then
+		echo 'virtualenv installed'
+		return 0
+	else
+		echo "virtualenv not found"
+		return 1
+	fi
+}
+
+installVirtualEnv () {
+	installMessage="Install virtualenv via pip? "
+	if install "$installMessage" ; then
+		echo 'installing virtualenv'
+		$(sudo pip install virtualenv)
+	else
+		exitProgram 'virtualenv'
+	fi
+}
+
+isVirtualenvWrapperInstalled () {
+	echo 'checking for virtualenvwrapper in /usr/local/bin'
+	if [ -e /usr/local/bin/virtualenvwrapper.sh ]; then
+		echo 'virtualenvwrapper found in /usr/local/bin'
+		return 0
+	else
+		echo 'virtualenvwrapper not found in /usr/local/bin'
+	fi
+}
+
+installVirtualEnvWrapper () {
+	installMessage="Create virtualenvwrapper in /usr/local/bin/? "
+	if install "$installMessage" ; then
+		echo 'creating virtualenvwrapper in /usr/local/bin/'
+		$(sudo pip install virtualenvwrapper)
+		echo 'virtualenvwrapper installed in /usr/local/bin/'
+	else
+		exitProgram 'virtualenv'
+	fi
+}
+
+doesVirtualEnvDirExist () {
+	echo 'checking if $HOME/.virtualenv exists...'
+	virtualenvsDir=$(ls $HOME/.virtualenvs)
+	if [ -d $HOME/.virtualenvs ]; then
+		echo '$HOME/.virtualenvs directory exists'
+		return 0
+	else
+		echo '$HOME/.virtualenvs does not exist'
+		return 1
+	fi
+}
+
+createVirtualEnvDir () {
+	installMessage="Create virtualenv directory? "
+	if install "$installMessage" ; then
+		echo 'creating virtualenv directory'
+		$(mkdir $HOME/.virtualenv)
+		echo '.virtualenv directory created in $HOME'
+	else
+		exitProgram 'virtualenv'
+	fi
+}
+
+checkPython () {
+	if [ -z "$python" ]; then
+		python=$(which python)
+		if [ -n $python ]; then
+			echo 'python version not provided. Defaulting to' $python
+			return 0
+		else
+			return 1
+		fi
+	fi
+}
+
+installPython () {
+	installMessage='python not found. Install python via brew? '
+	if install "$installMessage" ; then
+		echo 'installing virtualenv'
+		$(brew install python)
+	else
+		exitProgram 'python'
+	fi
+}
+
+checkForComponents () {
+	if ! isHomebrewInstalled ; then
+		installBrew
+	fi
+
+	if ! isPipInstalled ; then
+		installPip
+	fi
+
+	if ! isVirtualenvInstalled ; then
+		installVirtualEnv
+	fi
+
+	if ! isVirtualenvWrapperInstalled ; then
+		installVirtualEnvWrapper
+	fi
+
+	if ! doesVirtualEnvDirExist ; then
+		createVirtualEnvDir
+	fi
+
+	if ! checkPython ; then
+		installPython
+	fi
+}
+
+createVirtualEnv () {
+	echo
+	echo 'Creating virtualenv "'$projectName'"...'
+	source virtualenvwrapper.sh
+	echo $(mkvirtualenv -p "$python" "$projectName")
+	echo 'virtualenv created'
+}
+
+pipInstallDependencies () {
+	source $HOME/.virtualenvs/"$projectName"/bin/activate
+	echo 'Installing latest django version...'
+	echo $(pip install django)
+	echo 'Installing lastest mysqlclient...'
+	echo $(pip install mysqlclient)
+	echo 'Installing latest tastypie...'
+	echo $(pip install django-tastypie)
+	echo 'python packages installed:'
+	echo $(pip list)
+}
+
+createDevEnv () {
+	echo
+	echo 'Creating directories...'
+	echo $(mkdir -p "$projectName"/dev)
+	echo $(mkdir -p "$projectName"/"$projectName")
+}
+
+installDjango () {
+	echo
+	echo 'Creating django project in '$(pwd)/"$projectName"
+	$(django-admin.py startproject "$projectName" ./"$projectName"/"$projectName")
+
+}
+
+createProject () {
+	checkForComponents
+	createVirtualEnv
+	pipInstallDependencies
+	createDevEnv
+	installDjango
+	echo "$projectName" 'created succesfully.'
+}
+
+projectNameProvided () {
+	if [ -n "$projectName" ]; then
+    	return 0
+    else
+    	echo "No name given for project"
+    	return 1
+	fi
+}
+
+isInputValid () {
+	echo 'Validating input...'
+	if projectNameProvided ; then
+		echo 'Input is valid.'
+		return 0
+	else
+		return 1
+	fi
+}
+
+projectName=$1
+python=$2
+
+if isInputValid ; then
+	createProject
+else
+	exit 1
+fi
