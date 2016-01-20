@@ -186,8 +186,12 @@ pipInstallDependencies () {
 	echo $(pip install django)
 	echo 'Installing lastest mysqlclient...'
 	echo $(pip install mysqlclient)
-	echo 'Installing latest tastypie...'
-	echo $(pip install django-tastypie)
+	echo 'Installing latest Django Rest Framework...'
+	echo $(pip install djangorestframework)
+	echo 'Installing latest Markdown...'
+	echo $(pip install markdown)
+	echo 'Installing latest Django Filter...'
+	echo $(pip install django-filter)
 	echo 'python packages installed:'
 	echo $(pip list)
 }
