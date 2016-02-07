@@ -182,6 +182,8 @@ createVirtualEnv () {
 
 pipInstallDependencies () {
 	source $HOME/.virtualenvs/"$projectName"/bin/activate
+	echo 'Getting latest version of pip'
+	echo $(pip install --upgrade pip)
 	echo 'Installing latest django version...'
 	echo $(pip install django)
 	echo 'Installing lastest mysqlclient...'
